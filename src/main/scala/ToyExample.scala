@@ -1,8 +1,8 @@
-import org.apache.spark.sql.functions.round
 import org.apache.spark.ml.feature.RFormula
 import org.apache.spark.ml.linalg.Vectors
 import org.apache.spark.ml.regression.LinearRegression
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.ml.evaluation.RegressionEvaluator
 
 
 object ToyExample extends App {
@@ -20,36 +20,66 @@ object ToyExample extends App {
     .option("inferSchema", "true")
     .load("data/train.csv")
 
-  val df_test= spark.read
+  val df_validation = spark.read
+    .format("csv")
+    .option("header", "true")
+    .option("inferSchema", "true")
+    .load("data/validation.csv")
+
+  val df_test = spark.read
     .format("csv")
     .option("header", "true")
     .option("inferSchema", "true")
     .load("data/test.csv")
 
+
   df_train.printSchema()
-  df_test.printSchema()
+  df_validation.printSchema()
 
   df_train.show()
-  df_test.show()
+  df_validation.show()
 
-  val supervised = new RFormula()
+  val formula = new RFormula()
     .setFormula("salary ~ age")  // 2 x + 2000 + delta, pour notre cas j'ai utilisé un delta à 0 pour avoir un modèle parfait
 
-  val fittedRF = supervised.fit(df_train)  // entraînement du modèle: algorithme
-  val prepared = fittedRF.transform(df_train) // On applique le modèle pour les données training
-  val predicted = fittedRF.transform(df_test) // On applique le modèle sur les données test
+  val fittedRF = formula.fit(df_train)  // entraînement du modèle: algorithme
+  val df_train_prep = fittedRF.transform(df_train) // On applique le modèle pour les données training
+  val df_validation_prep = fittedRF.transform(df_validation) // On applique le modèle sur les données de validation
 
-  println(fittedRF)
 
-  prepared.show()
-  predicted.show()
+  df_train_prep.show()
+  df_validation_prep.show()
 
   val lr = new LinearRegression()  // On utilise un modèle de régression linéaire pour prédire
 
-  val model = lr.fit(prepared)
+  val model = lr.fit(df_train_prep)
 
-  println(model.coefficients(0).round)
-  println(model.intercept.round)
-  
+  println(model.coefficients)
+  println(model.intercept)
+
+  val predictions = model.transform(df_validation_prep)
+
+  predictions.show()
+
+  // On peut utiliser le même modèle pour prédire de nouvelles valeurs
+
+  val new_employee_age = 77
+  val new_employee_salary = model.predict(Vectors.dense(new_employee_age))
+  println(new_employee_salary)
+
+  df_test.foreach(r => {
+    val id = r.get(0)
+    val age = r.get(1).asInstanceOf[Int].toDouble
+
+    println(age)
+
+    val predicted_salary = model.predict(Vectors.dense(age))
+
+    println(id, age, predicted_salary)
+  })
+
+  44.0
+  34.0
+
 
 }
