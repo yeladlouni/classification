@@ -50,7 +50,9 @@ object ToyExample extends App {
   df_train_prep.show()
   df_validation_prep.show()
 
-  val lr = new LinearRegression()  // On utilise un modèle de régression linéaire pour prédire
+  val lr = new LinearRegression() // On utilise un modèle de régression linéaire pour prédire
+  // On a utilisé le modèle avec les hyperparameters par défaut ==> sensible defaults
+  // On peut changer les différents hyperparameters une fois on évalue le modèle afin d'avoir une accuracy qui tend vers 100%
 
   val model = lr.fit(df_train_prep)
 
@@ -66,6 +68,8 @@ object ToyExample extends App {
   val new_employee_age = 77
   val new_employee_salary = model.predict(Vectors.dense(new_employee_age))
   println(new_employee_salary)
+
+  println(model.explainParams())
 
   df_test.foreach(r => {
     val id = r.get(0)
