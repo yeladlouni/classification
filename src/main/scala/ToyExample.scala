@@ -78,8 +78,5 @@ object ToyExample extends App {
     println(id, age, predicted_salary)
   })
 
-  44.0
-  34.0
-
 
 }
